@@ -2,4 +2,4 @@ train/*
 test/*
 results/*
 __pycache__
-.idea/*
+.idea/
