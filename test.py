@@ -2,11 +2,24 @@ import cv2
 import numpy as np
 import os
 import pickle
-from gaussian2d import gaussian2d
 from hashkey import hashkey
 from math import floor
 from matplotlib import pyplot as plt
 from scipy import interpolate
+
+def gaussian2d(shape=(3,3),sigma=0.5):
+    """
+    2D gaussian mask - should give the same result as MATLAB's
+    fspecial('gaussian',[shape],[sigma])
+    """
+    m,n = [(ss-1.)/2. for ss in shape]
+    y,x = np.ogrid[-m:m+1,-n:n+1]
+    h = np.exp( -(x*x + y*y) / (2.*sigma*sigma) )
+    h[ h < np.finfo(h.dtype).eps*h.max() ] = 0
+    sumh = h.sum()
+    if sumh != 0:
+        h /= sumh
+    return h
 
 # Define parameters
 R = 2
@@ -41,8 +54,6 @@ for parent, dirnames, filenames in os.walk(trainpath):
 
 imagecount = 1
 for image in imagelist:
-    print('\r', end='')
-    print(' ' * 60, end='')
     print('\rUpscaling image ' + str(imagecount) + ' of ' + str(len(imagelist)) + ' (' + image + ')')
     origin = cv2.imread(image)
     # Extract only the luminance in YCbCr
@@ -65,11 +76,12 @@ for image in imagelist:
     totaloperations = (heightHR-2*margin) * (widthHR-2*margin)
     for row in range(margin, heightHR-margin):
         for col in range(margin, widthHR-margin):
-            if round(operationcount*100/totaloperations) != round((operationcount+1)*100/totaloperations):
+            if round(operationcount * 100 / totaloperations) != round((operationcount + 1) * 100 / totaloperations):
                 print('\r|', end='')
-                print('#' * round((operationcount+1)*100/totaloperations/2), end='')
-                print(' ' * (50 - round((operationcount+1)*100/totaloperations/2)), end='')
-                print('|  ' + str(round((operationcount+1)*100/totaloperations)) + '%', end='')
+                print('#' * round((operationcount + 1) * 100 / totaloperations / 2), end='')
+                print(' ' * (50 - round((operationcount + 1) * 100 / totaloperations / 2)), end='')
+                print('|  ' + str(round((operationcount + 1) * 100 / totaloperations)) + '%', end='')
+
             operationcount += 1
             # Get patch
             patch = upscaledLR[row-patchmargin:row+patchmargin+1, col-patchmargin:col+patchmargin+1]
@@ -110,6 +122,4 @@ for image in imagelist:
     #Uncomment the following line to visualize the process of RAISR image upscaling
     plt.show()
 
-print('\r', end='')
-print(' ' * 60, end='')
 print('\rFinished.')
